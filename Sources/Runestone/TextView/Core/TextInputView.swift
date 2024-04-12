@@ -1430,6 +1430,7 @@ extension TextInputView {
         inputDelegate?.selectionDidChange(self)
         delegate?.textInputViewDidUpdateMarkedRange(self)
     }
+    
 
     func unmarkText() {
         inputDelegate?.selectionWillChange(self)
@@ -1556,6 +1557,24 @@ extension TextInputView {
             return toPosition.index - fromPosition.index
         } else {
             return 0
+        }
+    }
+    
+    func moveCursorToLeft() {
+        if let selectedRange = self.selectedTextRange {
+            if let newCursorPosition = self.position(from: selectedRange.start, offset: -1) {
+                let newSelectedRange = self.textRange(from: newCursorPosition, to: newCursorPosition)
+                self.selectedTextRange = newSelectedRange
+            }
+        }
+    }
+    
+    func moveCursorToRight() {
+        if let selectedRange = self.selectedTextRange {
+            if let newCursorPosition = self.position(from: selectedRange.end, offset: 1) {
+                let newSelectedRange = self.textRange(from: newCursorPosition, to: newCursorPosition)
+                self.selectedTextRange = newSelectedRange
+            }
         }
     }
 }

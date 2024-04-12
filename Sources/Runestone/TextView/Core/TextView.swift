@@ -840,6 +840,16 @@ open class TextView: UIScrollView {
     public func shiftRight() {
         textInputView.shiftRight()
     }
+    
+    /// Moves the cursor to the left
+    public func moveCursorLeft() {
+        textInputView.moveCursorToLeft()
+    }
+    
+    /// Moves the cursor to the right
+    public func moveCursorRight() {
+        textInputView.moveCursorToRight()
+    }
 
     /// Moves the selected lines up by one line.
     ///
