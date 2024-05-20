@@ -164,6 +164,14 @@ final class TextInputView: UIView, UITextInput {
             layoutManager.lineSelectionDisplayType = newValue
         }
     }
+    public var highlightedLine: Int? {
+        get {
+            layoutManager.highlightedLine
+        }
+        set {
+            layoutManager.highlightedLine = newValue
+        }
+    }
     var showTabs: Bool {
         get {
             invisibleCharacterConfiguration.showTabs

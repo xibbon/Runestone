@@ -234,6 +234,13 @@ final class LineManager {
     func line(atRow row: Int) -> DocumentLineNode {
         documentLineTree.node(atIndex: row)
     }
+    
+    func tryLine(atRow row: Int) -> DocumentLineNode? {
+        if row >= documentLineTree.nodeTotalCount {
+            return nil
+        }
+        return documentLineTree.node(atIndex: row)
+    }
 
     @discardableResult
     func setHeight(of line: DocumentLineNode, to newHeight: CGFloat) -> Bool {

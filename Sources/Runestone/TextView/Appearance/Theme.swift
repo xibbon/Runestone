@@ -18,6 +18,8 @@ public protocol Theme: AnyObject {
     var lineNumberFont: UIFont { get }
     /// Background color of the selected line.
     var selectedLineBackgroundColor: UIColor { get }
+    /// Background color for a highlited line
+    var highlightedLineBackgroundColor: UIColor { get }
     /// Color of the line number of the selected line.
     var selectedLinesLineNumberColor: UIColor { get }
     /// Background color of the gutter for selected lines.

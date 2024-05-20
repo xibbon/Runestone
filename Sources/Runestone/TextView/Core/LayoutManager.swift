@@ -45,6 +45,7 @@ final class LayoutManager {
                 invisibleCharacterConfiguration.textColor = theme.invisibleCharactersColor
                 gutterSelectionBackgroundView.backgroundColor = theme.selectedLinesGutterBackgroundColor
                 lineSelectionBackgroundView.backgroundColor = theme.selectedLineBackgroundColor
+                lineHighlightedBackgroundView.backgroundColor = theme.highlightedLineBackgroundColor
                 for lineController in lineControllerStorage {
                     lineController.theme = theme
                     lineController.estimatedLineFragmentHeight = theme.font.totalLineHeight
@@ -52,6 +53,7 @@ final class LayoutManager {
                 }
                 setNeedsLayout()
                 setNeedsLayoutLineSelection()
+                setNeedsLayoutLineHighlighted()
                 layoutIfNeeded()
             }
         }
@@ -76,6 +78,15 @@ final class LayoutManager {
             if lineSelectionDisplayType != oldValue {
                 setNeedsLayoutLineSelection()
                 layoutLineSelectionIfNeeded()
+                updateShownViews()
+            }
+        }
+    }
+    var highlightedLine: Int? {
+        didSet {
+            if highlightedLine != oldValue {
+                setNeedsLayoutLineHighlighted()
+                layoutHighlightedLineIfNeeded()
                 updateShownViews()
             }
         }
@@ -119,6 +130,7 @@ final class LayoutManager {
     private let lineNumbersContainerView = UIView()
     private let gutterSelectionBackgroundView = UIView()
     private let lineSelectionBackgroundView = UIView()
+    private let lineHighlightedBackgroundView = UIView()
 
     // MARK: - Sizing
     private var leadingLineSpacing: CGFloat {
@@ -146,6 +158,7 @@ final class LayoutManager {
     private let lineControllerStorage: LineControllerStorage
     private var needsLayout = false
     private var needsLayoutLineSelection = false
+    private var needsLayoutLineHighlighted = false
 
     init(lineManager: LineManager,
          languageMode: InternalLanguageMode,
@@ -173,6 +186,7 @@ final class LayoutManager {
         self.gutterBackgroundView.isUserInteractionEnabled = false
         self.gutterSelectionBackgroundView.isUserInteractionEnabled = false
         self.lineSelectionBackgroundView.isUserInteractionEnabled = false
+        self.lineHighlightedBackgroundView.isUserInteractionEnabled = false
         self.updateShownViews()
         let memoryWarningNotificationName = UIApplication.didReceiveMemoryWarningNotification
         NotificationCenter.default.addObserver(self, selector: #selector(clearMemory), name: memoryWarningNotificationName, object: nil)
@@ -293,6 +307,7 @@ extension LayoutManager {
             CATransaction.setDisableActions(true)
             layoutGutter()
             layoutLineSelection()
+            layoutHighlightedLine()
             layoutLinesInViewport()
             updateLineNumberColors()
             CATransaction.commit()
@@ -303,12 +318,27 @@ extension LayoutManager {
         needsLayoutLineSelection = true
     }
 
+    func setNeedsLayoutLineHighlighted() {
+        needsLayoutLineHighlighted = true
+    }
+    
     func layoutLineSelectionIfNeeded() {
         if needsLayoutLineSelection {
             needsLayoutLineSelection = true
             CATransaction.begin()
             CATransaction.setDisableActions(false)
             layoutLineSelection()
+            updateLineNumberColors()
+            CATransaction.commit()
+        }
+    }
+
+    func layoutHighlightedLineIfNeeded() {
+        if needsLayoutLineHighlighted {
+            needsLayoutLineHighlighted = true
+            CATransaction.begin()
+            CATransaction.setDisableActions(false)
+            layoutHighlightedLine()
             updateLineNumberColors()
             CATransaction.commit()
         }
@@ -329,6 +359,16 @@ extension LayoutManager {
             let lineSelectionBackgroundOrigin = CGPoint(x: viewport.minX + totalGutterWidth, y: rect.minY)
             let lineSelectionBackgroundSize = CGSize(width: scrollViewWidth - gutterWidthService.gutterWidth, height: rect.height)
             lineSelectionBackgroundView.frame = CGRect(origin: lineSelectionBackgroundOrigin, size: lineSelectionBackgroundSize)
+        }
+    }
+    
+    private func layoutHighlightedLine() {
+        if let rect = getHighlightedLineRect() {
+            let totalGutterWidth = safeAreaInsets.left + gutterWidthService.gutterWidth
+            gutterSelectionBackgroundView.frame = CGRect(x: 0, y: rect.minY, width: totalGutterWidth, height: rect.height)
+            let lineSelectionBackgroundOrigin = CGPoint(x: viewport.minX + totalGutterWidth, y: rect.minY)
+            let lineSelectionBackgroundSize = CGSize(width: scrollViewWidth - gutterWidthService.gutterWidth, height: rect.height)
+            lineHighlightedBackgroundView.frame = CGRect(origin: lineSelectionBackgroundOrigin, size: lineSelectionBackgroundSize)
         }
     }
 
@@ -362,7 +402,29 @@ extension LayoutManager {
             return nil
         }
     }
-
+    
+    private func getHighlightedLineRect() -> CGRect? {
+        guard let highlightedLine else {
+            return nil
+        }
+        guard let start = lineManager.tryLine(atRow: highlightedLine) else {
+            return nil
+        }
+        var range = NSRange(location: start.location, length: 0)
+        guard let (startLine, endLine) = lineManager.startAndEndLine(in: range) else {
+            return nil
+        }
+        // If the line starts where our selection ends then our selection end son a line break and we will not include the following line.
+        var realEndLine = endLine
+        if range.upperBound == endLine.location && startLine !== endLine {
+            realEndLine = endLine.previous
+            range = NSRange(location: range.lowerBound, length: max(range.length - 1, 0))
+        }
+        let minY = startLine.yPosition
+        let height = (realEndLine.yPosition + realEndLine.data.lineHeight) - minY
+        return CGRect(x: 0, y: textContainerInset.top + minY, width: scrollViewWidth, height: height)
+    }
+    
     func layoutLines(toLocation location: Int) {
         var nextLine: DocumentLineNode? = lineManager.firstLine
         let isLocationEndOfString = location >= stringView.string.length
@@ -512,6 +574,7 @@ extension LayoutManager {
     private func setupViewHierarchy() {
         // Remove views from view hierarchy
         lineSelectionBackgroundView.removeFromSuperview()
+        lineHighlightedBackgroundView.removeFromSuperview()
         linesContainerView.removeFromSuperview()
         gutterContainerView.removeFromSuperview()
         gutterBackgroundView.removeFromSuperview()
@@ -521,6 +584,7 @@ extension LayoutManager {
         lineFragmentViewReuseQueue.enqueueViews(withKeys: Set(allLineNumberKeys))
         // Add views to view hierarchy
         textInputView?.addSubview(lineSelectionBackgroundView)
+        textInputView?.addSubview(lineHighlightedBackgroundView)
         textInputView?.addSubview(linesContainerView)
         gutterParentView?.addSubview(gutterContainerView)
         gutterContainerView.addSubview(gutterBackgroundView)
@@ -534,6 +598,7 @@ extension LayoutManager {
         lineNumbersContainerView.isHidden = !showLineNumbers
         gutterSelectionBackgroundView.isHidden = !lineSelectionDisplayType.shouldShowLineSelection || !showLineNumbers || !isEditing
         lineSelectionBackgroundView.isHidden = !lineSelectionDisplayType.shouldShowLineSelection || !isEditing || selectedLength > 0
+        lineHighlightedBackgroundView.isHidden = highlightedLine == nil
     }
 }
 

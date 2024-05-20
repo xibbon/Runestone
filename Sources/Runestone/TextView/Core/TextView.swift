@@ -278,6 +278,15 @@ open class TextView: UIScrollView {
             textInputView.lineSelectionDisplayType = newValue
         }
     }
+    /// If not nil, this will highlight the line
+    public var highlightedLine: Int? {
+        get {
+            textInputView.highlightedLine
+        }
+        set {
+            textInputView.highlightedLine = newValue
+        }
+    }
     /// The text view renders invisible tabs when enabled. The `tabsSymbol` is used to render tabs.
     public var showTabs: Bool {
         get {

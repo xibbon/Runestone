@@ -9,6 +9,7 @@ public final class DefaultTheme: Runestone.Theme {
     public let lineNumberColor = UIColor(themeColorNamed: "line_number")
     public let lineNumberFont: UIFont = .monospacedSystemFont(ofSize: 14, weight: .regular)
     public let selectedLineBackgroundColor = UIColor(themeColorNamed: "current_line")
+    public let highlightedLineBackgroundColor = UIColor (themeColorNamed: "highlighted_line")
     public let selectedLinesLineNumberColor = UIColor(themeColorNamed: "line_number_current_line")
     public let selectedLinesGutterBackgroundColor = UIColor(themeColorNamed: "gutter_background")
     public let invisibleCharactersColor = UIColor(themeColorNamed: "invisible_characters")
