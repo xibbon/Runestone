@@ -45,6 +45,17 @@ final class TextInputStringTokenizer: UITextInputStringTokenizer {
             return super.position(from: position, toBoundary: granularity, inDirection: direction)
         }
     }
+    
+    override func rangeEnclosingPosition(_ position: UITextPosition, with granularity: UITextGranularity, inDirection direction: UITextDirection) -> UITextRange? {
+        if granularity == .word,
+           let bside = self.position(from: position, toBoundary: granularity, inDirection: .storage(.backward)),
+           let fside = self.position(from: position, toBoundary: granularity, inDirection: .storage(.forward)),
+           let br = bside as? IndexedPosition,
+           let fr = fside as? IndexedPosition {
+            return IndexedRange (location: br.index, length: fr.index-br.index)
+        }
+        return super.rangeEnclosingPosition(position, with: granularity, inDirection: direction)
+    }
 }
 
 // MARK: - Lines
@@ -173,15 +184,15 @@ private extension TextInputStringTokenizer {
             return false
         }
         let location = indexedPosition.index
-        let alphanumerics = CharacterSet.alphanumerics
+        let validIdentifierSet = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_"))
         if direction.isForward {
             if location == 0 {
                 return false
             } else if let previousCharacter = stringView.character(at: location - 1) {
                 if location == stringView.string.length {
-                    return alphanumerics.contains(previousCharacter)
+                    return validIdentifierSet.contains(previousCharacter)
                 } else if let character = stringView.character(at: location) {
-                    return alphanumerics.contains(previousCharacter) && !alphanumerics.contains(character)
+                    return validIdentifierSet.contains(previousCharacter) && !validIdentifierSet.contains(character)
                 } else {
                     return false
                 }
@@ -193,9 +204,9 @@ private extension TextInputStringTokenizer {
                 return false
             } else if let character = stringView.character(at: location) {
                 if location == 0 {
-                    return alphanumerics.contains(character)
+                    return validIdentifierSet.contains(character)
                 } else if let previousCharacter = stringView.character(at: location - 1) {
-                    return alphanumerics.contains(character) && !alphanumerics.contains(previousCharacter)
+                    return validIdentifierSet.contains(character) && !validIdentifierSet.contains(previousCharacter)
                 } else {
                     return false
                 }
@@ -212,18 +223,18 @@ private extension TextInputStringTokenizer {
         }
         didCallPositionFromPositionToWordBoundary = true
         let location = indexedPosition.index
-        let alphanumerics = CharacterSet.alphanumerics
+        let validIdentifierSet = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_"))
         if direction.isForward {
             if location == stringView.string.length {
                 return position
             } else if let referenceCharacter = stringView.character(at: location) {
-                let isReferenceCharacterAlphanumeric = alphanumerics.contains(referenceCharacter)
+                let isReferenceCharacterAlphanumeric = validIdentifierSet.contains(referenceCharacter)
                 var currentIndex = location + 1
                 while currentIndex < stringView.string.length {
                     guard let currentCharacter = stringView.character(at: currentIndex) else {
                         break
                     }
-                    let isCurrentCharacterAlphanumeric = alphanumerics.contains(currentCharacter)
+                    let isCurrentCharacterAlphanumeric = validIdentifierSet.contains(currentCharacter)
                     if isReferenceCharacterAlphanumeric != isCurrentCharacterAlphanumeric {
                         break
                     }
@@ -237,13 +248,16 @@ private extension TextInputStringTokenizer {
             if location == 0 {
                 return position
             } else if let referenceCharacter = stringView.character(at: location - 1) {
-                let isReferenceCharacterAlphanumeric = alphanumerics.contains(referenceCharacter)
+                let isReferenceCharacterAlphanumeric = validIdentifierSet.contains(referenceCharacter)
+                if !isReferenceCharacterAlphanumeric {
+                    return position
+                }
                 var currentIndex = location - 1
                 while currentIndex > 0 {
                     guard let currentCharacter = stringView.character(at: currentIndex) else {
                         break
                     }
-                    let isCurrentCharacterAlphanumeric = alphanumerics.contains(currentCharacter)
+                    let isCurrentCharacterAlphanumeric = validIdentifierSet.contains(currentCharacter)
                     if isReferenceCharacterAlphanumeric != isCurrentCharacterAlphanumeric {
                         currentIndex += 1
                         break
