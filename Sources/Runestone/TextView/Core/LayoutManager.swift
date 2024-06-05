@@ -127,7 +127,7 @@ final class LayoutManager {
     private var visibleLineIDs: Set<DocumentLineNodeID> = []
     private let linesContainerView = UIView()
     private let gutterBackgroundView = GutterBackgroundView()
-    private let lineNumbersContainerView = UIView()
+    let lineNumbersContainerView = UIView()
     private let gutterSelectionBackgroundView = UIView()
     private let lineSelectionBackgroundView = UIView()
     private let lineHighlightedBackgroundView = UIView()

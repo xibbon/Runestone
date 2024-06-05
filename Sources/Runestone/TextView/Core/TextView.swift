@@ -21,6 +21,11 @@ open class TextView: UIScrollView {
             }
         }
     }
+    
+    public var lineNumbersContainerView: UIView {
+        return textInputView.lineNumbersContainerView
+    }
+    
     /// The text that the text view displays.
     public var text: String {
         get {

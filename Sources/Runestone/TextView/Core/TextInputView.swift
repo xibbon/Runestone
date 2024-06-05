@@ -156,6 +156,9 @@ final class TextInputView: UIView, UITextInput {
             }
         }
     }
+    var lineNumbersContainerView: UIView {
+        layoutManager.lineNumbersContainerView
+    }
     var lineSelectionDisplayType: LineSelectionDisplayType {
         get {
             layoutManager.lineSelectionDisplayType
