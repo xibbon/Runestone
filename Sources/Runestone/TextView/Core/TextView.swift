@@ -217,6 +217,14 @@ open class TextView: UIScrollView {
         }
     }
     #endif
+    
+    #if compiler(<5.9) || !os(visionOS)
+    /// This is hack needed because of memory leak originating from UIKit, we need to get inputAccessoryView from outside in order to perform cleanup
+    public func getUnderlyingInputAccessoryView() -> UIView? {
+        return _inputAccessoryView
+    }
+    #endif
+    
     #if compiler(<5.9) || !os(visionOS)
     /// The input assistant to use when configuring the keyboard's shortcuts bar.
     override public var inputAssistantItem: UITextInputAssistantItem {
