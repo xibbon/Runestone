@@ -1135,6 +1135,15 @@ extension TextView {
         textInputView.layoutLines(toLocation: range.upperBound)
         justScrollRangeToVisible(range)
     }
+    
+    public func updateOffsetForCompletion(_ location: CGRect, keyboardOffset: CGFloat, completionDialogHeight: CGFloat) {
+        guard self.keyboardObserver.isKeyboardVisible, keyboardOffset > 0 else { return }
+        let diff = keyboardOffset - (location.maxY  + completionDialogHeight)
+        if diff < 0 {
+            let newContentOffset = contentOffset.y + abs(diff)
+            setContentOffset(.init(x: contentOffset.x, y: newContentOffset), animated: true)
+        }
+    }
 }
 
 private extension TextView {
