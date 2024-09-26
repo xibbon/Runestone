@@ -4,6 +4,9 @@ protocol KeyboardObserverDelegate: AnyObject {
     func keyboardObserver(_ keyboardObserver: KeyboardObserver,
                           keyboardWillShowWithHeight keyboardHeight: CGFloat,
                           animation: KeyboardObserver.Animation?)
+    func keyboardObserver(_ keyboardObserver: KeyboardObserver,
+                          keyboardDidShowWithHeight keyboardHeight: CGFloat,
+                          animation: KeyboardObserver.Animation?)
     func keyboardObserver(_ keyboardObserver: KeyboardObserver, keyboardWillHideWith animation: KeyboardObserver.Animation?)
     func keyboardObserver(_ keyboardObserver: KeyboardObserver,
                           keyboardWillChangeHeightTo keyboardHeight: CGFloat,
@@ -13,6 +16,9 @@ protocol KeyboardObserverDelegate: AnyObject {
 extension KeyboardObserverDelegate {
     func keyboardObserver(_ keyboardObserver: KeyboardObserver,
                           keyboardWillShowWithHeight keyboardHeight: CGFloat,
+                          animation: KeyboardObserver.Animation?) {}
+    func keyboardObserver(_ keyboardObserver: KeyboardObserver,
+                          keyboardDidShowWithHeight keyboardHeight: CGFloat,
                           animation: KeyboardObserver.Animation?) {}
     func keyboardObserver(_ keyboardObserver: KeyboardObserver, keyboardWillHideWith animation: KeyboardObserver.Animation?) {}
     func keyboardObserver(_ keyboardObserver: KeyboardObserver,
@@ -42,8 +48,8 @@ final class KeyboardObserver {
     init() {
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(keyboardWillShow(notification:)),
-            name: UIResponder.keyboardWillShowNotification,
+            selector: #selector(keyboardDidShow(notification:)),
+            name: UIResponder.keyboardDidShowNotification,
             object: nil)
         NotificationCenter.default.addObserver(
             self,
@@ -62,14 +68,14 @@ final class KeyboardObserver {
     }
 }
 
-private extension KeyboardObserver {
-    @objc private func keyboardWillShow(notification: Notification) {
+private extension KeyboardObserver {    
+    @objc private func keyboardDidShow(notification: Notification) {
         let animation = createAnimation(from: notification)
         let newKeyboardHeight = keyboardHeight(from: notification)
         if !isKeyboardVisible || newKeyboardHeight != keyboardHeight {
             keyboardHeight = newKeyboardHeight
             isKeyboardVisible = true
-            delegate?.keyboardObserver(self, keyboardWillShowWithHeight: keyboardHeight, animation: animation)
+            delegate?.keyboardObserver(self, keyboardDidShowWithHeight: keyboardHeight, animation: animation)
         }
     }
 

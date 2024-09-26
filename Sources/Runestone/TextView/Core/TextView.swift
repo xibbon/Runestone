@@ -1499,10 +1499,10 @@ extension TextView: UIGestureRecognizerDelegate {
 // MARK: - KeyboardObserverDelegate
 extension TextView: KeyboardObserverDelegate {
     func keyboardObserver(_ keyboardObserver: KeyboardObserver,
-                          keyboardWillShowWithHeight keyboardHeight: CGFloat,
+                          keyboardDidShowWithHeight keyboardHeight: CGFloat,
                           animation: KeyboardObserver.Animation?) {
         if isAutomaticScrollEnabled, let newRange = textInputView.selectedRange, newRange.length == 0 {
-            scrollRangeToVisible(newRange)
+            self.scrollRangeToVisible(newRange)
         }
     }
 }
