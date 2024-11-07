@@ -2,3 +2,4 @@
 .swiftpm
 .build
 xcuserdata
+Package.resolved
