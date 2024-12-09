@@ -619,6 +619,12 @@ final class TextInputView: UIView, UITextInput {
     private var hasDeletedTextWithPendingLayoutSubviews = false
     private var preserveUndoStackWhenSettingString = false
     private var cancellables: [AnyCancellable] = []
+    
+    public var breakpoints = Set<Int>() {
+        didSet {
+            layoutManager.breakpoints = breakpoints
+        }
+    }
 
     // MARK: - Lifecycle
     init(theme: Theme) {

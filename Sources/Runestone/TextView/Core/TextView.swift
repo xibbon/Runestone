@@ -659,6 +659,12 @@ open class TextView: UIScrollView {
         let height = baseContentSize.height + verticalOverscrollLength
         return CGSize(width: width, height: height)
     }
+    
+    public var breakpoints = Set<Int>() {
+        didSet {
+            self.textInputView.breakpoints = breakpoints
+        }
+    }
 
     /// Create a new text view.
     /// - Parameter frame: The frame rectangle of the text view.

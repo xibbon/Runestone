@@ -159,6 +159,12 @@ final class LayoutManager {
     private var needsLayout = false
     private var needsLayoutLineSelection = false
     private var needsLayoutLineHighlighted = false
+    
+    public var breakpoints = Set<Int>() {
+        didSet {
+            updateLineNumberColors()
+        }
+    }
 
     init(lineManager: LineManager,
          languageMode: InternalLanguageMode,
@@ -565,9 +571,17 @@ extension LayoutManager {
                 let lineNumberFrame = lineNumberView.frame
                 let isInSelection = lineNumberFrame.midY >= selectionFrame.minY && lineNumberFrame.midY <= selectionFrame.maxY
                 lineNumberView.textColor = isInSelection && isEditing ? theme.selectedLinesLineNumberColor : theme.lineNumberColor
+                updateTexColorIfBreakpoint(lineNumberView)
             } else {
                 lineNumberView.textColor = theme.lineNumberColor
+                updateTexColorIfBreakpoint(lineNumberView)
             }
+        }
+    }
+    
+    private func updateTexColorIfBreakpoint(_ lineNumberView: LineNumberView) {
+        if breakpoints.contains((Int(lineNumberView.text ?? "") ?? -1) - 1) {
+            lineNumberView.textColor = theme.selectedLinesLineNumberColor
         }
     }
 
