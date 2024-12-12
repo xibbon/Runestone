@@ -1449,6 +1449,10 @@ extension TextView: TextInputViewDelegate {
     func textInputView(_ view: TextInputView, replaceTextIn highlightedRange: HighlightedRange) {
         editorDelegate?.textView(self, replaceTextIn: highlightedRange)
     }
+    
+    func textInputViewTryCompletion() -> Bool {
+        return editorDelegate?.textViewTryCompletion() ?? false
+    }
 }
 
 // MARK: - HighlightNavigationControllerDelegate

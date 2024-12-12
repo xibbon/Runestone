@@ -18,6 +18,7 @@ protocol TextInputViewDelegate: AnyObject {
     func textInputViewDidUpdateMarkedRange(_ view: TextInputView)
     func textInputView(_ view: TextInputView, canReplaceTextIn highlightedRange: HighlightedRange) -> Bool
     func textInputView(_ view: TextInputView, replaceTextIn highlightedRange: HighlightedRange)
+    func textInputViewTryCompletion() -> Bool
 }
 
 // swiftlint:disable:next type_body_length
@@ -1115,6 +1116,9 @@ extension TextInputView {
 // MARK: - Editing
 extension TextInputView {
     func insertText(_ text: String) {
+        if text == "\n", let delegate, delegate.textInputViewTryCompletion() {
+            return
+        }
         let preparedText = prepareTextForInsertion(text)
         isRestoringPreviouslyDeletedText = hasDeletedTextWithPendingLayoutSubviews
         hasDeletedTextWithPendingLayoutSubviews = false
