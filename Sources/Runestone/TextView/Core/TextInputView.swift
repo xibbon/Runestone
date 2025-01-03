@@ -1230,6 +1230,53 @@ extension TextInputView {
     func text(in range: NSRange) -> String? {
         stringView.substring(in: range)
     }
+    
+    func toggleInlineComment(_ delimiter: String) {
+        guard let selectedRange else { return }
+        let lines = lineManager.lines(in: selectedRange)
+        var isCommented = true
+        var isAllEmpty = true
+        for line in lines {
+            let location = line.location
+            let length = line.data.length
+            var isEmpty = true
+            if length > 0 {
+                if let text = self.text(in: IndexedRange(NSRange(location: location, length: length))) {
+                    let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                    isEmpty = trimmedText.isEmpty
+                    isAllEmpty = isAllEmpty && isEmpty
+                    if !trimmedText.hasPrefix(delimiter) {
+                        isCommented = false
+                        break
+                    }
+                }
+            }
+        }
+        isCommented = isCommented && !isAllEmpty
+        for line in lines {
+            let location = line.location
+            let length = line.data.length
+            if isAllEmpty {
+                replaceText(in: NSRange(location: location, length: 0), with: delimiter)
+                continue
+            }
+            if isCommented {
+                let range = IndexedRange(NSRange(location: location, length: length))
+                if let text = self.text(in: range), let locationInLine = text.firstRange(of: delimiter) {
+                    let finalLocation = location + locationInLine
+                    replaceText(in: NSRange(location: finalLocation, length: delimiter.count), with: "")
+                }
+            } else {
+                replaceText(in: NSRange(location: location, length: 0), with: delimiter)
+            }
+        }
+        let diff = lines.count * delimiter.count
+        if isCommented {
+            self.selectedTextRange = IndexedRange(NSRange(location: selectedRange.location, length: selectedRange.length - diff))
+        } else {
+            self.selectedTextRange = IndexedRange(NSRange(location: selectedRange.location, length: selectedRange.length + diff))
+        }
+    }
 
     private func setStringWithUndoAction(_ newString: NSString) {
         guard newString != string else {
@@ -1699,3 +1746,18 @@ extension TextInputView: EditMenuControllerDelegate {
         selectedRange
     }
 }
+
+extension String {
+    /// Finds the starting index of the first occurrence of a substring and returns it as an `Int`.
+    func firstRange(of substring: String) -> Int? {
+        guard !substring.isEmpty, self.count >= substring.count else { return nil }
+        
+        for (offset, index) in self.indices.enumerated() {
+            if self[index...].hasPrefix(substring) {
+                return offset
+            }
+        }
+        return nil
+    }
+}
+

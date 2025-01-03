@@ -837,6 +837,10 @@ open class TextView: UIScrollView {
     public func text(in range: NSRange) -> String? {
         textInputView.text(in: range)
     }
+    
+    public func toggleInlineComment(_ delimiter: String) {
+        textInputView.toggleInlineComment(delimiter)
+    }
 
     /// Returns the syntax node at the specified location in the document.
     ///
