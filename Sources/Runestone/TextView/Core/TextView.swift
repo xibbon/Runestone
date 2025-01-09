@@ -906,8 +906,10 @@ open class TextView: UIScrollView {
         // I'm not exactly sure why this is necessary but if the text view is the first responder as we jump
         // to the line and we don't resign the first responder first, the caret will disappear after we have
         // jumped to the specified line.
-        resignFirstResponder()
-        becomeFirstResponder()
+        if isFirstResponder {
+            resignFirstResponder()
+            becomeFirstResponder()
+        }
         let line = textInputView.lineManager.line(atRow: lineIndex)
         textInputView.layoutLines(toLocation: line.location)
         scrollLocationToVisible(line.location)
