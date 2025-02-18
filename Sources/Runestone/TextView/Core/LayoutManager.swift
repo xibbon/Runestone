@@ -581,7 +581,7 @@ extension LayoutManager {
     
     private func updateTexColorIfBreakpoint(_ lineNumberView: LineNumberView) {
         if breakpoints.contains((Int(lineNumberView.text ?? "") ?? -1) - 1) {
-            lineNumberView.textColor = theme.selectedLinesLineNumberColor
+            lineNumberView.textColor = UIColor.white
         }
     }
 
