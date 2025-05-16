@@ -250,9 +250,10 @@ private extension TextInputStringTokenizer {
             } else if let referenceCharacter = stringView.character(at: location - 1) {
                 let isReferenceCharacterAlphanumeric = validIdentifierSet.contains(referenceCharacter)
                 if !isReferenceCharacterAlphanumeric {
-                    return position
+                    return IndexedPosition(index: location - 1)//position
                 }
                 var currentIndex = location - 1
+
                 while currentIndex > 0 {
                     guard let currentCharacter = stringView.character(at: currentIndex) else {
                         break
