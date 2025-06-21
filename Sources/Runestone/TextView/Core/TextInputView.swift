@@ -1336,7 +1336,9 @@ extension TextInputView {
         addUndoOperation(replacing: newRange, withText: currentText, selectedRangeAfterUndo: selectedRangeAfterUndo, actionName: undoActionName)
         _selectedRange = NSRange(location: newRange.upperBound, length: 0)
         let textEditHelper = TextEditHelper(stringView: stringView, lineManager: lineManager, lineEndings: lineEndings)
-        let textEditResult = textEditHelper.replaceText(in: range, with: newString)
+        guard let textEditResult = textEditHelper.replaceText(in: range, with: newString) else {
+            return
+        }
         let textChange = textEditResult.textChange
         let lineChangeSet = textEditResult.lineChangeSet
         let languageModeLineChangeSet = languageMode.textDidChange(textChange)

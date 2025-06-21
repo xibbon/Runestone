@@ -21,18 +21,23 @@ final class TextEditHelper {
         self.lineEndings = lineEndings
     }
 
-    func replaceText(in range: NSRange, with newString: String) -> TextEditResult {
+    func replaceText(in range: NSRange, with newString: String) -> TextEditResult? {
         let nsNewString = newString as NSString
         let byteRange = ByteRange(utf16Range: range)
-        let oldEndLinePosition = lineManager.linePosition(at: range.location + range.length)!
+        guard let oldEndLinePosition = lineManager.linePosition(at: range.location + range.length) else {
+            return nil
+        }
         stringView.replaceText(in: range, with: newString)
         let lineChangeSet = LineChangeSet()
         let lineChangeSetFromRemovingCharacters = lineManager.removeCharacters(in: range)
         lineChangeSet.union(with: lineChangeSetFromRemovingCharacters)
         let lineChangeSetFromInsertingCharacters = lineManager.insert(nsNewString, at: range.location)
         lineChangeSet.union(with: lineChangeSetFromInsertingCharacters)
-        let startLinePosition = lineManager.linePosition(at: range.location)!
-        let newEndLinePosition = lineManager.linePosition(at: range.location + nsNewString.length)!
+        guard let startLinePosition = lineManager.linePosition(at: range.location),
+              let newEndLinePosition = lineManager.linePosition(at: range.location + nsNewString.length)
+        else {
+            return nil
+        }
         let textChange = TextChange(byteRange: byteRange,
                                     bytesAdded: newString.byteCount,
                                     oldEndLinePosition: oldEndLinePosition,
