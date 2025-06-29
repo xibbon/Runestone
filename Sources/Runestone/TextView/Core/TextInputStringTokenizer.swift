@@ -250,7 +250,12 @@ private extension TextInputStringTokenizer {
             } else if let referenceCharacter = stringView.character(at: location - 1) {
                 let isReferenceCharacterAlphanumeric = validIdentifierSet.contains(referenceCharacter)
                 if !isReferenceCharacterAlphanumeric {
-                    return IndexedPosition(index: location - 1)//position
+                    // This is needed because option + back doesn't work otherwise
+                    if direction == UITextDirection.storage(.backward){
+                        return IndexedPosition(index: location - 1)
+                    } else {
+                        return position
+                    }
                 }
                 var currentIndex = location - 1
 
