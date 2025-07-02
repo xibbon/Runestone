@@ -54,6 +54,9 @@ public final class DefaultTheme: Runestone.Theme {
             return UIColor(themeColorNamed: "operator")
         case .punctuation:
             return UIColor(themeColorNamed: "punctuation")
+        case .boolean:
+            // using this because in godot function and boolean have same color in gdscipt
+            return UIColor(themeColorNamed: "keyword")
         }
     }
 

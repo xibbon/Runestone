@@ -17,6 +17,7 @@ enum HighlightName: String {
     case type
     case variable
     case variableBuiltin = "variable.builtin"
+    case boolean
 
     init?(_ rawHighlightName: String) {
         var comps = rawHighlightName.split(separator: ".")
