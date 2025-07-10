@@ -103,6 +103,8 @@ public protocol TextViewDelegate: AnyObject {
     func textView(_ textView: TextView, replaceTextIn highlightedRange: HighlightedRange)
     
     func textViewTryCompletion() -> Bool
+
+    func textViewIndent(_ textView: TextView, undo: Bool)
 }
 
 public extension TextViewDelegate {

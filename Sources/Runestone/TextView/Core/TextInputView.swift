@@ -19,6 +19,7 @@ protocol TextInputViewDelegate: AnyObject {
     func textInputView(_ view: TextInputView, canReplaceTextIn highlightedRange: HighlightedRange) -> Bool
     func textInputView(_ view: TextInputView, replaceTextIn highlightedRange: HighlightedRange)
     func textInputViewTryCompletion() -> Bool
+    func textInputViewIndent(undo: Bool)
 }
 
 // swiftlint:disable:next type_body_length
@@ -99,6 +100,7 @@ final class TextInputView: UIView, UITextInput {
                                                                 stringView: stringView,
                                                                 lineManager: lineManager,
                                                                 lineControllerStorage: lineControllerStorage)
+    var isShiftPressed: Bool = false
     var autocorrectionType: UITextAutocorrectionType = .default
     var autocapitalizationType: UITextAutocapitalizationType = .sentences
     var smartQuotesType: UITextSmartQuotesType = .default
@@ -931,9 +933,28 @@ final class TextInputView: UIView, UITextInput {
     override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
         super.pressesEnded(presses, with: event)
         if let keyCode = presses.first?.key?.keyCode, presses.count == 1 {
+            switch keyCode {
+            case .keyboardLeftShift, .keyboardRightShift:
+                isShiftPressed = false
+            default:
+                break
+            }
             if markedRange != nil {
                 handleKeyPressDuringMultistageTextInput(keyCode: keyCode)
             }
+        }
+    }
+
+    override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        super.pressesBegan(presses, with: event)
+        if let keyCode = presses.first?.key?.keyCode, presses.count == 1 {
+            switch keyCode {
+            case .keyboardLeftShift, .keyboardRightShift:
+                isShiftPressed = true
+            default:
+                break
+            }
+
         }
     }
 }
@@ -1117,6 +1138,14 @@ extension TextInputView {
 extension TextInputView {
     func insertText(_ text: String) {
         if text == "\n", let delegate, delegate.textInputViewTryCompletion() {
+            return
+        }
+        if text == "\t", let delegate {
+            if isShiftPressed {
+                delegate.textInputViewIndent(undo: true)
+            } else {
+                delegate.textInputViewIndent(undo: false)
+            }
             return
         }
         let preparedText = prepareTextForInsertion(text)

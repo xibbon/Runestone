@@ -1459,6 +1459,10 @@ extension TextView: TextInputViewDelegate {
     func textInputViewTryCompletion() -> Bool {
         return editorDelegate?.textViewTryCompletion() ?? false
     }
+
+    func textInputViewIndent(undo: Bool) {
+        editorDelegate?.textViewIndent(self, undo: undo)
+    }
 }
 
 // MARK: - HighlightNavigationControllerDelegate
