@@ -751,6 +751,7 @@ final class TextInputView: UIView, UITextInput {
         if let selectedTextRange = selectedTextRange, let text = text(in: selectedTextRange) {
             UIPasteboard.general.string = text
             replace(selectedTextRange, withText: "")
+            self.selectedTextRange = nil
         }
     }
 
