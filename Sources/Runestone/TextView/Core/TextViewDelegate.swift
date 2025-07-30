@@ -105,6 +105,8 @@ public protocol TextViewDelegate: AnyObject {
     func textViewTryCompletion() -> Bool
 
     func textViewIndent(_ textView: TextView, undo: Bool)
+
+    func textViewDidInvalidateBreakpoints(_ textView: TextView, changeLineIndex: Int, diff: Int)
 }
 
 public extension TextViewDelegate {

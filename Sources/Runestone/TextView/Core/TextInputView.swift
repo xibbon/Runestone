@@ -20,6 +20,7 @@ protocol TextInputViewDelegate: AnyObject {
     func textInputView(_ view: TextInputView, replaceTextIn highlightedRange: HighlightedRange)
     func textInputViewTryCompletion() -> Bool
     func textInputViewIndent(undo: Bool)
+    func textInputViewDidInvalidateBreakpoints(_ view: TextInputView, changeLineIndex: Int, diff: Int)
 }
 
 // swiftlint:disable:next type_body_length
@@ -1360,6 +1361,8 @@ extension TextInputView {
                              with newString: String,
                              selectedRangeAfterUndo: NSRange? = nil,
                              undoActionName: String = L10n.Undo.ActionName.typing) {
+
+        let changeLineIndex = lineManager.lines(in: range).first?.index
         let nsNewString = newString as NSString
         let currentText = text(in: range) ?? ""
         let newRange = NSRange(location: range.location, length: nsNewString.length)
@@ -1373,6 +1376,12 @@ extension TextInputView {
         let lineChangeSet = textEditResult.lineChangeSet
         let languageModeLineChangeSet = languageMode.textDidChange(textChange)
         lineChangeSet.union(with: languageModeLineChangeSet)
+        if let changeLineIndex {
+            let diff = lineChangeSet.insertedLines.count - lineChangeSet.removedLines.count
+            if diff != 0 {
+                delegate?.textInputViewDidInvalidateBreakpoints(self, changeLineIndex: changeLineIndex, diff: diff)
+            }
+        }
         applyLineChangesToLayoutManager(lineChangeSet)
         let updatedTextEditResult = TextEditResult(textChange: textChange, lineChangeSet: lineChangeSet)
         delegate?.textInputViewDidChange(self)

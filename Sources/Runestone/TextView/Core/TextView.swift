@@ -1463,6 +1463,10 @@ extension TextView: TextInputViewDelegate {
     func textInputViewIndent(undo: Bool) {
         editorDelegate?.textViewIndent(self, undo: undo)
     }
+
+    func textInputViewDidInvalidateBreakpoints(_ view: TextInputView, changeLineIndex: Int, diff: Int) {
+        editorDelegate?.textViewDidInvalidateBreakpoints(self, changeLineIndex: changeLineIndex, diff: diff)
+    }
 }
 
 // MARK: - HighlightNavigationControllerDelegate
