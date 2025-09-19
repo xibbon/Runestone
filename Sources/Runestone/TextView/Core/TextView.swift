@@ -925,6 +925,11 @@ open class TextView: UIScrollView {
         return true
     }
 
+    /// Returns the number of lines in the text
+    public func lineCount() -> Int {
+        return textInputView.lineManager.lineCount
+    }
+    
     /// Search for the specified query.
     ///
     /// The code below shows how a ``SearchQuery`` can be constructed and passed to ``search(for:)``.
