@@ -239,6 +239,10 @@ final class LineManager {
         if row >= documentLineTree.nodeTotalCount {
             return nil
         }
+        // Caught in the wild, not sure why.
+        if documentLineTree.root == nil {
+            return nil
+        }
         return documentLineTree.node(atIndex: row)
     }
 
