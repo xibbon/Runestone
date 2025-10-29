@@ -51,7 +51,7 @@ final class StringView {
         if range.location >= 0 && range.upperBound <= internalString.length && range.length > 0 {
             return internalString.substring(with: range)
         } else {
-            return nil
+            return ""
         }
     }
 
