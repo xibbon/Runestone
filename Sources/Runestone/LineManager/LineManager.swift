@@ -236,7 +236,7 @@ final class LineManager {
     }
     
     func tryLine(atRow row: Int) -> DocumentLineNode? {
-        if row >= documentLineTree.nodeTotalCount {
+        if row < 0 || row >= documentLineTree.nodeTotalCount {
             return nil
         }
         // Caught in the wild, not sure why.

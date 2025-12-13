@@ -84,6 +84,13 @@ final class LayoutManager {
     }
     var highlightedLine: Int? {
         didSet {
+            if let highlightedLine {
+                if highlightedLine < 0 || highlightedLine >= lineManager.lineCount {
+                    // Ignore impossible highlight requests instead of trying to lay out an invalid line.
+                    self.highlightedLine = nil
+                    return
+                }
+            }
             if highlightedLine != oldValue {
                 setNeedsLayoutLineHighlighted()
                 layoutHighlightedLineIfNeeded()
