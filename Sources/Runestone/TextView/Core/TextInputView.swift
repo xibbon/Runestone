@@ -752,9 +752,14 @@ final class TextInputView: UIView, UITextInput {
 
     override func cut(_ sender: Any?) {
         if let selectedTextRange = selectedTextRange, let text = text(in: selectedTextRange) {
+            let cutRange = (selectedTextRange as? IndexedRange)?.range ?? selectedRange
             UIPasteboard.general.string = text
+            inputDelegate?.selectionWillChange(self)
             replace(selectedTextRange, withText: "")
-            self.selectedTextRange = nil
+            if let cutRange {
+                selectedRange = NSRange(location: cutRange.location, length: 0)
+            }
+            inputDelegate?.selectionDidChange(self)
         }
     }
 
@@ -1182,10 +1187,14 @@ extension TextInputView {
 
     func deleteBackward() {
         didCallDeleteBackward = true
-        guard let selectedRange = markedRange ?? selectedRange, selectedRange.length > 0 else {
+        guard let selectedRange = markedRange ?? selectedRange else {
             return
         }
-        let deleteRange = rangeForDeletingText(in: selectedRange)
+        let safeSelectedRange = safeSelectionRange(from: selectedRange)
+        guard safeSelectedRange.length > 0 else {
+            return
+        }
+        let deleteRange = rangeForDeletingText(in: safeSelectedRange)
         // If we're deleting everything in the marked range then we clear the marked range. UITextInput doesn't do that for us.
         // Can be tested by entering a backtick (`) in an empty document and deleting it.
         if deleteRange == markedRange {
@@ -1209,11 +1218,11 @@ extension TextInputView {
         // In that case we want to undo to a selected range of length 0, so we construct our range here and pass it all the way to the undo operation.
         let selectedRangeAfterUndo: NSRange
         if deleteRange.length == 1 {
-            selectedRangeAfterUndo = NSRange(location: selectedRange.upperBound, length: 0)
+            selectedRangeAfterUndo = NSRange(location: safeSelectedRange.upperBound, length: 0)
         } else {
-            selectedRangeAfterUndo = selectedRange
+            selectedRangeAfterUndo = safeSelectedRange
         }
-        let isDeletingMultipleCharacters = selectedRange.length > 1
+        let isDeletingMultipleCharacters = safeSelectedRange.length > 1
         if isDeletingMultipleCharacters {
             timedUndoManager.endUndoGrouping()
             timedUndoManager.beginUndoGrouping()
@@ -1803,4 +1812,3 @@ extension String {
         return nil
     }
 }
-
