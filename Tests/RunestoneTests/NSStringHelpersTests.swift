@@ -44,4 +44,10 @@ final class NSStringHelpersTests: XCTestCase {
         let range = str.customRangeOfComposedCharacterSequence(at: 6)
         XCTAssertEqual(range, NSRange(location: 5, length: 2))
     }
+
+    func testComposedCharacterSequenceClampsOutOfBoundsRange() {
+        let str = "Hello" as NSString
+        let range = str.customRangeOfComposedCharacterSequences(for: NSRange(location: str.length, length: 1))
+        XCTAssertEqual(range, NSRange(location: str.length, length: 0))
+    }
 }
