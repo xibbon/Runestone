@@ -38,10 +38,15 @@ extension NSString {
     func customRangeOfComposedCharacterSequences(for range: NSRange) -> NSRange {
         let clampedRange = clampedRangeForComposedCharacterSequences(range)
         // Guard against out-of-bounds ranges that can raise NSInvalidArgumentException.
-        guard clampedRange.location < length else {
+        guard length > 0, clampedRange.location < length else {
             return clampedRange
         }
-        let defaultRange = rangeOfComposedCharacterSequences(for: clampedRange)
+        let defaultRange: NSRange
+        if clampedRange.length == 0 {
+            defaultRange = rangeOfComposedCharacterSequence(at: clampedRange.location)
+        } else {
+            defaultRange = rangeOfComposedCharacterSequences(for: clampedRange)
+        }
         let candidateCRLFRange = NSRange(location: defaultRange.location - 1, length: 2)
         if candidateCRLFRange.location >= 0 && candidateCRLFRange.upperBound <= length && isCRLFLineEnding(in: candidateCRLFRange) {
             return NSRange(location: defaultRange.location - 1, length: defaultRange.length + 1)
