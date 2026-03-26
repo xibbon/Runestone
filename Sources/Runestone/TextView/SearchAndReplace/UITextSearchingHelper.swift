@@ -165,10 +165,10 @@ private extension UITextSearchingHelper {
     }
 }
 
+@available(iOS 16, *)
 extension UITextSearchingHelper: UIFindInteractionDelegate {
-    @available(iOS 16, *)
     func findInteraction(_ interaction: UIFindInteraction, sessionFor view: UIView) -> UIFindSession? {
-        UITextSearchingFindSession(searchableObject: self)
+        return UITextSearchingFindSession(searchableObject: self)
     }
 }
 
