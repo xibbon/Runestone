@@ -26,6 +26,15 @@ extension TextInputStringTokenizerTests {
         XCTAssertEqual(indexedPosition.index, 39)
     }
 
+    func testMovingToEndOfFirstLineFragmentWithoutPreparingLineFragments() {
+        let tokenizer = makeTokenizer(prepareLineFragments: false)
+        let fromPosition = IndexedPosition(index: 10)
+        let textDirection = UITextDirection(rawValue: UITextStorageDirection.forward.rawValue)
+        let position = tokenizer.position(from: fromPosition, toBoundary: .line, inDirection: textDirection)
+        let indexedPosition = position as! IndexedPosition
+        XCTAssertEqual(indexedPosition.index, 39)
+    }
+
     // This is equivalent to doing Cmd+Right within the second line fragment.
     func testMovingToEndOfSecondLineFragmentFromWithinSecondLineFragment() {
         let tokenizer = makeTokenizer()
@@ -262,7 +271,7 @@ Donec laoreet, massa sed commodo tincidunt, dui neque ullamcorper sapien, laoree
         // swiftlint:enable line_length
     }
 
-    private func makeTokenizer() -> UITextInputTokenizer {
+    private func makeTokenizer(prepareLineFragments: Bool = true) -> UITextInputTokenizer {
         let textInputView = TextInputView(theme: DefaultTheme())
         let stringLength = textInputView.stringView.string.length
         textInputView.layoutLines(toLocation: stringLength)
@@ -276,10 +285,12 @@ Donec laoreet, massa sed commodo tincidunt, dui neque ullamcorper sapien, laoree
                                                           invisibleCharacterConfiguration: invisibleCharacterConfiguration)
         let lineControllerStorage = LineControllerStorage(stringView: stringView, lineControllerFactory: lineControllerFactory)
         lineControllerStorage.delegate = self
-        for row in 0 ..< lineManager.lineCount {
-            let line = lineManager.line(atRow: row)
-            let lineController = lineControllerStorage.getOrCreateLineController(for: line)
-            lineController.prepareToDisplayString(toLocation: line.data.totalLength, syntaxHighlightAsynchronously: false)
+        if prepareLineFragments {
+            for row in 0 ..< lineManager.lineCount {
+                let line = lineManager.line(atRow: row)
+                let lineController = lineControllerStorage.getOrCreateLineController(for: line)
+                lineController.prepareToDisplayString(toLocation: line.data.totalLength, syntaxHighlightAsynchronously: false)
+            }
         }
         return TextInputStringTokenizer(textInput: textInputView,
                                         stringView: stringView,

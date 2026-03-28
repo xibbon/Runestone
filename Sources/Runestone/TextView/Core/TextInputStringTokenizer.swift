@@ -70,13 +70,13 @@ private extension TextInputStringTokenizer {
         }
         let lineLocation = line.location
         let lineLocalLocation = location - lineLocation
-        let lineController = lineControllerStorage.getOrCreateLineController(for: line)
         guard lineLocalLocation >= 0 && lineLocalLocation <= line.data.totalLength else {
             return false
         }
-        guard let lineFragmentNode = lineController.lineFragmentNode(containingCharacterAt: lineLocalLocation) else {
+        guard let lineFragmentNode = lineFragmentNode(containingCharacterAt: lineLocalLocation, in: line) else {
             return false
         }
+        let lineController = lineControllerStorage.getOrCreateLineController(for: line)
         if direction.isForward {
             let isLastLineFragment = lineFragmentNode.index == lineController.numberOfLineFragments - 1
             if isLastLineFragment {
@@ -97,12 +97,15 @@ private extension TextInputStringTokenizer {
         guard let line = lineManager.line(containingCharacterAt: location) else {
             return nil
         }
-        let lineController = lineControllerStorage.getOrCreateLineController(for: line)
         let lineLocation = line.location
         let lineLocalLocation = location - lineLocation
-        guard let lineFragmentNode = lineController.lineFragmentNode(containingCharacterAt: lineLocalLocation) else {
+        guard lineLocalLocation >= 0 && lineLocalLocation <= line.data.totalLength else {
             return nil
         }
+        guard let lineFragmentNode = lineFragmentNode(containingCharacterAt: lineLocalLocation, in: line) else {
+            return nil
+        }
+        let lineController = lineControllerStorage.getOrCreateLineController(for: line)
         if direction.isForward {
             if location == stringView.string.length {
                 return position
@@ -128,6 +131,12 @@ private extension TextInputStringTokenizer {
         } else {
             return IndexedPosition(index: lineLocation + lineFragmentNode.location)
         }
+    }
+
+    private func lineFragmentNode(containingCharacterAt location: Int, in line: DocumentLineNode) -> LineFragmentNode? {
+        let lineController = lineControllerStorage.getOrCreateLineController(for: line)
+        lineController.prepareToDisplayString(toLocation: location, syntaxHighlightAsynchronously: false)
+        return lineController.lineFragmentNode(containingCharacterAt: location)
     }
 }
 
