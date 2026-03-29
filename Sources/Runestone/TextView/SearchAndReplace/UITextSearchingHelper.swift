@@ -29,6 +29,17 @@ final class UITextSearchingHelper: NSObject {
         }
     }
     private var _findInteraction: Any?
+    private var _findInteractionDelegate: Any?
+
+    @available(iOS 16, *)
+    private var findInteractionDelegate: UITextSearchingFindInteractionDelegate? {
+        get {
+            _findInteractionDelegate as? UITextSearchingFindInteractionDelegate
+        }
+        set {
+            _findInteractionDelegate = newValue
+        }
+    }
 
     private let queue = OperationQueue()
     private var _textView: TextView {
@@ -136,7 +147,9 @@ extension UITextSearchingHelper: UITextSearching {
 private extension UITextSearchingHelper {
     private func addFindInteraction() {
         if #available(iOS 16, *), findInteraction == nil {
-            let findInteraction = UIFindInteraction(sessionDelegate: self)
+            let delegate = UITextSearchingFindInteractionDelegate(helper: self)
+            findInteractionDelegate = delegate
+            let findInteraction = UIFindInteraction(sessionDelegate: delegate)
             self.findInteraction = findInteraction
             _textView.addInteraction(findInteraction)
         }
@@ -145,6 +158,7 @@ private extension UITextSearchingHelper {
     private func removeFindInteraction() {
         if #available(iOS 16, *), let findInteraction = findInteraction {
             self.findInteraction = nil
+            findInteractionDelegate = nil
             _textView.removeInteraction(findInteraction)
         }
     }
@@ -166,9 +180,18 @@ private extension UITextSearchingHelper {
 }
 
 @available(iOS 16, *)
-extension UITextSearchingHelper: UIFindInteractionDelegate {
+private final class UITextSearchingFindInteractionDelegate: NSObject, UIFindInteractionDelegate {
+    weak var helper: UITextSearchingHelper?
+
+    init(helper: UITextSearchingHelper) {
+        self.helper = helper
+    }
+
     func findInteraction(_ interaction: UIFindInteraction, sessionFor view: UIView) -> UIFindSession? {
-        return UITextSearchingFindSession(searchableObject: self)
+        guard let helper else {
+            return nil
+        }
+        return UITextSearchingFindSession(searchableObject: helper)
     }
 }
 
