@@ -656,6 +656,12 @@ open class TextView: UIScrollView {
     // https://steveshepard.com/blog/adventures-with-uitextinteraction/
     private var textRangeAdjustmentGestureRecognizers: Set<UIGestureRecognizer> = []
     private var previousSelectedRangeDuringGestureHandling: NSRange?
+    // iPhone-only edge autoscroll during selection drag (Safari-style).
+    private var autoscrollDisplayLink: CADisplayLink?
+    private var autoscrollVelocity: CGPoint = .zero
+    private var autoscrollViewportFingerLocation: CGPoint = .zero
+    private var autoscrollSelectionAnchor: Int?
+    private var autoscrollLastTickTimestamp: CFTimeInterval = 0
     private var preferredContentSize: CGSize {
         let horizontalOverscrollLength = max(frame.width * horizontalOverscrollFactor, 0)
         let verticalOverscrollLength = max(frame.height * verticalOverscrollFactor, 0)
@@ -707,6 +713,14 @@ open class TextView: UIScrollView {
         textInputView.frame = CGRect(x: 0, y: 0, width: max(contentSize.width, frame.width), height: max(contentSize.height, frame.height))
         textInputView.viewport = CGRect(origin: contentOffset, size: frame.size)
         bringSubviewToFront(textInputView.gutterContainerView)
+    }
+
+    override open func willMove(toWindow newWindow: UIWindow?) {
+        super.willMove(toWindow: newWindow)
+        if newWindow == nil {
+            // Break the CADisplayLink → TextView retain before detach, so deinit can run.
+            stopAutoscroll()
+        }
     }
 
     /// Called when the safe area of the view changes.
@@ -1186,18 +1200,143 @@ private extension TextView {
     }
 
     @objc private func handleTextRangeAdjustmentPan(_ gestureRecognizer: UIPanGestureRecognizer) {
-        // This function scroll the text view when the selected range is adjusted.
-        if gestureRecognizer.state == .began {
+        // Scroll the text view when the selected range is adjusted, and on iPhone,
+        // run a Safari-style edge-autoscroll loop while the finger sits near a viewport edge.
+        let isPhone = UIDevice.current.userInterfaceIdiom == .phone
+        switch gestureRecognizer.state {
+        case .began:
             previousSelectedRangeDuringGestureHandling = selectedRange
-        } else if gestureRecognizer.state == .changed, let previousSelectedRange = previousSelectedRangeDuringGestureHandling {
-            if selectedRange.lowerBound != previousSelectedRange.lowerBound {
-                // User is adjusting the lower bound (location) of the selected range.
-                scrollLocationToVisible(selectedRange.lowerBound)
-            } else if selectedRange.upperBound != previousSelectedRange.upperBound {
-                // User is adjusting the upper bound (length) of the selected range.
-                scrollLocationToVisible(selectedRange.upperBound)
+            autoscrollSelectionAnchor = nil
+        case .changed:
+            if let previousSelectedRange = previousSelectedRangeDuringGestureHandling {
+                if selectedRange.lowerBound != previousSelectedRange.lowerBound {
+                    autoscrollSelectionAnchor = selectedRange.upperBound
+                    scrollLocationToVisible(selectedRange.lowerBound)
+                } else if selectedRange.upperBound != previousSelectedRange.upperBound {
+                    autoscrollSelectionAnchor = selectedRange.lowerBound
+                    scrollLocationToVisible(selectedRange.upperBound)
+                }
+                previousSelectedRangeDuringGestureHandling = selectedRange
             }
-            previousSelectedRangeDuringGestureHandling = selectedRange
+            if isPhone {
+                updateAutoscrollState(with: gestureRecognizer)
+            }
+        case .ended, .cancelled, .failed:
+            stopAutoscroll()
+            previousSelectedRangeDuringGestureHandling = nil
+            autoscrollSelectionAnchor = nil
+        default:
+            break
+        }
+    }
+
+    private func updateAutoscrollState(with gestureRecognizer: UIPanGestureRecognizer) {
+        // location(in: self) is in scroll view (content) coords; subtract contentOffset for viewport coords.
+        let locationInSelf = gestureRecognizer.location(in: self)
+        let viewportPoint = CGPoint(x: locationInSelf.x - contentOffset.x,
+                                    y: locationInSelf.y - contentOffset.y)
+        autoscrollViewportFingerLocation = viewportPoint
+
+        let visibleTop = adjustedContentInset.top
+        let visibleBottom = bounds.height - adjustedContentInset.bottom
+        let visibleLeft = adjustedContentInset.left + gutterWidth
+        let visibleRight = bounds.width - adjustedContentInset.right
+        let edgeThreshold: CGFloat = 44
+        let maxSpeed: CGFloat = 900
+
+        var vy: CGFloat = 0
+        if viewportPoint.y > visibleBottom - edgeThreshold {
+            let frac = min(1, (viewportPoint.y - (visibleBottom - edgeThreshold)) / edgeThreshold)
+            vy = maxSpeed * frac
+        } else if viewportPoint.y < visibleTop + edgeThreshold {
+            let frac = min(1, ((visibleTop + edgeThreshold) - viewportPoint.y) / edgeThreshold)
+            vy = -maxSpeed * frac
+        }
+        var vx: CGFloat = 0
+        if viewportPoint.x > visibleRight - edgeThreshold {
+            let frac = min(1, (viewportPoint.x - (visibleRight - edgeThreshold)) / edgeThreshold)
+            vx = maxSpeed * frac
+        } else if viewportPoint.x < visibleLeft + edgeThreshold {
+            let frac = min(1, ((visibleLeft + edgeThreshold) - viewportPoint.x) / edgeThreshold)
+            vx = -maxSpeed * frac
+        }
+        autoscrollVelocity = CGPoint(x: vx, y: vy)
+
+        if vx == 0 && vy == 0 {
+            stopAutoscroll()
+            return
+        }
+        if autoscrollSelectionAnchor == nil {
+            // Fallback anchor: opposite end of selection from the finger, or caret if selection is empty.
+            if let sel = textInputView.selectedRange {
+                if sel.length == 0 {
+                    autoscrollSelectionAnchor = sel.location
+                } else {
+                    let fingerInTextInput = convert(locationInSelf, to: textInputView)
+                    if let position = textInputView.closestPosition(to: fingerInTextInput) {
+                        let newIndex = textInputView.offset(from: textInputView.beginningOfDocument, to: position)
+                        let distLower = abs(newIndex - sel.lowerBound)
+                        let distUpper = abs(newIndex - sel.upperBound)
+                        autoscrollSelectionAnchor = distLower > distUpper ? sel.lowerBound : sel.upperBound
+                    } else {
+                        autoscrollSelectionAnchor = sel.lowerBound
+                    }
+                }
+            } else {
+                return
+            }
+        }
+        if autoscrollDisplayLink == nil {
+            startAutoscroll()
+        }
+    }
+
+    private func startAutoscroll() {
+        autoscrollLastTickTimestamp = 0
+        let link = CADisplayLink(target: self, selector: #selector(autoscrollTick(_:)))
+        link.add(to: .main, forMode: .common)
+        autoscrollDisplayLink = link
+    }
+
+    private func stopAutoscroll() {
+        autoscrollDisplayLink?.invalidate()
+        autoscrollDisplayLink = nil
+        autoscrollVelocity = .zero
+        autoscrollLastTickTimestamp = 0
+    }
+
+    @objc private func autoscrollTick(_ link: CADisplayLink) {
+        guard let anchor = autoscrollSelectionAnchor else {
+            stopAutoscroll()
+            return
+        }
+        let now = link.timestamp
+        let dt: CFTimeInterval = autoscrollLastTickTimestamp == 0 ? link.duration : now - autoscrollLastTickTimestamp
+        autoscrollLastTickTimestamp = now
+
+        var newOffset = contentOffset
+        newOffset.x += autoscrollVelocity.x * CGFloat(dt)
+        newOffset.y += autoscrollVelocity.y * CGFloat(dt)
+        newOffset.x = min(max(newOffset.x, minimumContentOffset.x), maximumContentOffset.x)
+        newOffset.y = min(max(newOffset.y, minimumContentOffset.y), maximumContentOffset.y)
+        if newOffset == contentOffset {
+            return
+        }
+        contentOffset = newOffset
+
+        let contentFinger = CGPoint(x: autoscrollViewportFingerLocation.x + newOffset.x,
+                                    y: autoscrollViewportFingerLocation.y + newOffset.y)
+        let fingerInTextInput = convert(contentFinger, to: textInputView)
+        guard let position = textInputView.closestPosition(to: fingerInTextInput) else {
+            return
+        }
+        let newIndex = textInputView.offset(from: textInputView.beginningOfDocument, to: position)
+        let lower = min(anchor, newIndex)
+        let upper = max(anchor, newIndex)
+        let newRange = NSRange(location: lower, length: upper - lower)
+        if textInputView.selectedRange != newRange {
+            textInputView.selectedRange = newRange
+            previousSelectedRangeDuringGestureHandling = newRange
         }
     }
 
